@@ -5,7 +5,7 @@ use reqwest::{
     Client,
 };
 use std::io::prelude::*;
-use std::{error::Error, fs::File};
+use std::{error::Error, fs, path::Path};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -17,12 +17,13 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     Day { day: i32 },
+    New { day: i32 },
 }
 
 async fn get_input(day: i32) -> Result<String, Box<dyn Error>> {
     let url = format!("https://adventofcode.com/2025/day/{:?}/input", day);
     let mut cookies = String::new();
-    File::open(".cookie")?.read_to_string(&mut cookies)?;
+    fs::File::open(".cookie")?.read_to_string(&mut cookies)?;
 
     let mut headers = HeaderMap::new();
     headers.insert("COOKIE", HeaderValue::from_str(&cookies)?);
@@ -60,69 +61,121 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     let puzzle = day3::Day3;
                     puzzle.solve(&data);
                 }
-                // 4 => {
-                //     let puzzle = day4::Day4;
-                //     puzzle.solve(&data);
-                // }
-                // 5 => {
-                //     let puzzle = day5::Day5;
-                //     puzzle.solve(&data);
-                // }
-                // 6 => {
-                //     let puzzle = day6::Day6;
-                //     puzzle.solve(&data);
-                // }
-                // 7 => {
-                //     let puzzle = day7::Day7;
-                //     puzzle.solve(&data);
-                // }
-                // 8 => {
-                //     let puzzle = day8::Day8;
-                //     puzzle.solve(&data);
-                // }
-                // 9 => {
-                //     let puzzle = day9::Day9;
-                //     puzzle.solve(&data);
-                // }
-                // 10 => {
-                //     let puzzle = day10::Day10;
-                //     puzzle.solve(&data);
-                // }
-                // 11 => {
-                //     let puzzle = day11::Day11;
-                //     puzzle.solve(&data);
-                // }
-                // 12 => {
-                //     let puzzle = day12::Day12;
-                //     puzzle.solve(&data);
-                // }
-                // 13 => {
-                //     let puzzle = day13::Day13;
-                //     puzzle.solve(&data);
-                // }
-                // 14 => {
-                //     let puzzle = day14::Day14;
-                //     puzzle.solve(&data);
-                // }
-                // 15 => {
-                //     let puzzle = day15::Day15;
-                //     puzzle.solve(&data);
-                // }
-                // 16 => {
-                //     let puzzle = day16::Day16;
-                //     puzzle.solve(&data);
-                // }
-                // 17 => {
-                //     let puzzle = day17::Day17;
-                //     puzzle.solve(&data);
-                // }
-                // 18 => {
-                //     let puzzle = day18::Day18;
-                //     puzzle.solve(&data);
-                // }
                 _ => {
                     println!("Puzzle of day {:#?} not found!", day);
                 }
+            }
+        }
+        Commands::New { day } => {
+            let solution_path = Path::new("./src/puzzles").join(format!("day{}.rs", day));
+            if solution_path.exists() {
+                panic!("Solution file {:?} exists", solution_path);
+            }
+            println!("Path: {:?}", solution_path);
+            let mut solution_file: fs::File = fs::File::create(solution_path)?;
+            writeln!(solution_file, "use super::Puzzle;\n")?;
+            writeln!(solution_file, "pub struct Day{};\n", day)?;
+            writeln!(solution_file, "type Input = ();\n")?;
+            writeln!(
+                solution_file,
+                "mod parser {{\n    use nom::IResult;\n\n    use super::Input;\n"
+            )?;
+            writeln!(
+                solution_file,
+                "    pub fn parse(input: &str) -> IResult<&str, Input> {{"
+            )?;
+            writeln!(solution_file, "        Ok((\"\", ()))\n    }}\n}}\n")?;
+            writeln!(solution_file, "impl Puzzle for Day{} {{", day)?;
+            writeln!(solution_file, "    type Output = i64;\n")?;
+            writeln!(
+                solution_file,
+                "    fn part1(&self, input: &str) -> Self::Output {{\n        0\n    }}\n"
+            )?;
+            writeln!(
+                solution_file,
+                "    fn part2(&self, input: &str) -> Self::Output {{\n        0\n    }}\n"
+            )?;
+            writeln!(solution_file, "    fn solve(&self, input: &str) {{")?;
+            writeln!(solution_file, "            let ans1 = self.part1(&input);")?;
+            writeln!(
+                solution_file,
+                "            println!(\"Answer of Day {} Part 1:  {{:#?}}\", ans1);",
+                day
+            )?;
+            writeln!(solution_file, "            let ans2 = self.part2(&input);")?;
+            writeln!(
+                solution_file,
+                "            println!(\"Answer of Day {} Part 2:  {{:#?}}\", ans2);",
+                day
+            )?;
+            writeln!(solution_file, "        }}")?;
+            writeln!(solution_file, "}}\n")?;
+            writeln!(solution_file, "#[cfg(test)]")?;
+            writeln!(solution_file, "mod tests {{")?;
+            writeln!(solution_file, "    use super::*;\n")?;
+            writeln!(solution_file, "    const TESTCASE: &'static str = r\"\";\n")?;
+            writeln!(
+                solution_file,
+                "    #[test]\n    fn test_puzzle_day{}_parse() {{\n\n    }}\n",
+                day
+            )?;
+            writeln!(
+                solution_file,
+                "    #[test]\n    fn test_puzzle_day{}_part1() {{",
+                day
+            )?;
+            writeln!(solution_file, "        let puzzle = Day{};\n    }}\n", day)?;
+            writeln!(
+                solution_file,
+                "    #[test]\n    fn test_puzzle_day{}_part2() {{",
+                day
+            )?;
+            writeln!(solution_file, "        let puzzle = Day{};\n    }}", day)?;
+            writeln!(solution_file, "}}")?;
+
+            let all_mod_line = fs::read_to_string(Path::new("./src/puzzles").join("mod.rs"))?;
+            let mut all_mod_lines: Vec<String> = all_mod_line
+                .trim()
+                .split("\n")
+                .map(|line| line.to_string())
+                .collect::<Vec<String>>();
+
+            let insert_idx = all_mod_lines
+                .iter()
+                .filter(|&line| line.starts_with("pub mod day"))
+                .count();
+
+            let new_mod_line = format!("pub mod day{};", day);
+            if !all_mod_lines.contains(&new_mod_line) {
+                all_mod_lines.insert(insert_idx, new_mod_line);
+            }
+
+            let mut solution_mod_file = fs::OpenOptions::new()
+                .write(true)
+                .truncate(true)
+                .open(Path::new("./src/puzzles").join("mod.rs"))?;
+
+            writeln!(solution_mod_file, "{}", all_mod_lines.join("\n"))?;
+
+            let main_path = Path::new("./src/main.rs");
+            let main_text = fs::read_to_string(main_path)?;
+
+            if !main_text.contains(&format!("day{}::Day{}", day, day)) {
+                let mut main_lines: Vec<String> =
+                    main_text.lines().map(|l| l.to_string()).collect();
+
+                let insert_idx = main_lines
+                    .iter()
+                    .position(|l| l.contains("_ => {"))
+                    .unwrap_or(main_lines.len());
+
+                let new_arm = format!(
+                    "                {d} => {{\n                    let puzzle = day{d}::Day{d};\n                    puzzle.solve(&data);\n                }}",
+                    d = day
+                );
+
+                main_lines.insert(insert_idx, new_arm);
+                fs::write(main_path, main_lines.join("\n"))?;
             }
         }
     };
