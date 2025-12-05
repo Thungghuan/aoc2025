@@ -65,6 +65,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     let puzzle = day4::Day4;
                     puzzle.solve(&data);
                 }
+                5 => {
+                    let puzzle = day5::Day5;
+                    puzzle.solve(&data);
+                }
                 _ => {
                     println!("Puzzle of day {:#?} not found!", day);
                 }
@@ -128,13 +132,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 "    #[test]\n    fn test_puzzle_day{}_part1() {{",
                 day
             )?;
-            writeln!(solution_file, "        let puzzle = Day{};\n    }}\n", day)?;
+            writeln!(solution_file, "        let puzzle = Day{};\n", day)?;
+            writeln!(solution_file, "        assert_eq!(puzzle.part1(TESTCASE), 0);")?;
+            writeln!(solution_file, "    }}\n")?;
             writeln!(
                 solution_file,
                 "    #[test]\n    fn test_puzzle_day{}_part2() {{",
                 day
             )?;
-            writeln!(solution_file, "        let puzzle = Day{};\n    }}", day)?;
+            writeln!(solution_file, "        let puzzle = Day{};\n", day)?;
+            writeln!(solution_file, "        assert_eq!(puzzle.part2(TESTCASE), 0);")?;
+            writeln!(solution_file, "    }}\n")?;
             writeln!(solution_file, "}}")?;
 
             let all_mod_line = fs::read_to_string(Path::new("./src/puzzles").join("mod.rs"))?;
