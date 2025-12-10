@@ -21,23 +21,33 @@ enum Commands {
 }
 
 async fn get_input(day: i32) -> Result<String, Box<dyn Error>> {
-    let url = format!("https://adventofcode.com/2025/day/{:?}/input", day);
-    let mut cookies = String::new();
-    fs::File::open(".cookie")?.read_to_string(&mut cookies)?;
+    let cache_dir = Path::new("./puzzle_inputs");
+    let cache_path = cache_dir.join(format!("day{}.txt", day));
+
+    if cache_path.exists() {
+        let s = std::fs::read_to_string(&cache_path)?;
+        return Ok(s);
+    }
+
+    let url = format!("https://adventofcode.com/2025/day/{}/input", day);
+    let cookies = fs::read_to_string(".cookie")?.trim().to_string();
 
     let mut headers = HeaderMap::new();
-    headers.insert("COOKIE", HeaderValue::from_str(&cookies)?);
+    headers.insert(reqwest::header::COOKIE, HeaderValue::from_str(&cookies)?);
+
     let client = Client::builder().default_headers(headers).build()?;
+    let resp = client.get(&url).send().await?;
+    let status = resp.status();
+    let body = resp.text().await?;
 
-    let resp = client.get(url).send().await?;
-    assert_eq!(
-        resp.status(),
-        200,
-        "Error getting puzzle import. Message: {:#?}",
-        resp.text().await?
-    );
+    if status != 200 {
+        return Err(format!("unexpected status {}: {}", status, body).into());
+    }
 
-    Ok(resp.text().await?)
+    fs::create_dir_all(&cache_dir)?;
+    fs::write(&cache_path, &body)?;
+
+    Ok(body)
 }
 
 #[tokio::main]
@@ -79,6 +89,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 }
                 8 => {
                     let puzzle = day8::Day8;
+                    puzzle.solve(&data);
+                }
+                9 => {
+                    let puzzle = day9::Day9;
                     puzzle.solve(&data);
                 }
                 _ => {
@@ -145,7 +159,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 day
             )?;
             writeln!(solution_file, "        let puzzle = Day{};\n", day)?;
-            writeln!(solution_file, "        assert_eq!(puzzle.part1(TESTCASE), 0);")?;
+            writeln!(
+                solution_file,
+                "        assert_eq!(puzzle.part1(TESTCASE), 0);"
+            )?;
             writeln!(solution_file, "    }}\n")?;
             writeln!(
                 solution_file,
@@ -153,7 +170,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 day
             )?;
             writeln!(solution_file, "        let puzzle = Day{};\n", day)?;
-            writeln!(solution_file, "        assert_eq!(puzzle.part2(TESTCASE), 0);")?;
+            writeln!(
+                solution_file,
+                "        assert_eq!(puzzle.part2(TESTCASE), 0);"
+            )?;
             writeln!(solution_file, "    }}\n")?;
             writeln!(solution_file, "}}")?;
 
