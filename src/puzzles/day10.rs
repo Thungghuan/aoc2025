@@ -81,6 +81,7 @@ impl Day10 {
     fn convert_light_to_number(&self, indicator_lights: &Vec<bool>) -> i32 {
         indicator_lights
             .iter()
+            .rev()
             .fold(0, |acc, cur| acc * 2 + if *cur { 1 } else { 0 })
     }
 
@@ -91,6 +92,51 @@ impl Day10 {
                 buttons
                     .iter()
                     .fold(0, |acc, cur| acc + 2i32.pow(*cur as u32))
+            })
+            .collect()
+    }
+
+    fn xor_combination(
+        &self,
+        buttons: &Vec<i32>,
+        target: i32,
+        mut res: i32,
+        combination: &mut Vec<i32>,
+    ) -> usize {
+        if res == target {
+            return combination.len();
+        }
+        if buttons.is_empty() {
+            return usize::MAX;
+        }
+
+        let mut min_length = usize::MAX;
+        for idx in 0..buttons.len() {
+            combination.push(buttons[idx]);
+            res ^= buttons[idx];
+
+            min_length = self
+                .xor_combination(&buttons[idx + 1..].to_vec(), target, res, combination)
+                .min(min_length);
+
+            res ^= buttons[idx];
+            combination.pop();
+        }
+
+        min_length
+    }
+
+    fn convert_button_to_joltages_counter(
+        &self,
+        button_schematics: &Vec<Vec<usize>>,
+        joltages_number: usize,
+    ) -> Vec<Vec<i32>> {
+        button_schematics
+            .iter()
+            .map(|button| {
+                (0..joltages_number)
+                    .map(|idx| if button.contains(&idx) { 1 } else { 0 })
+                    .collect()
             })
             .collect()
     }
@@ -108,16 +154,38 @@ impl Puzzle for Day10 {
                 let lights = self.convert_light_to_number(&machine.indicator_lights);
                 let buttons = self.convert_button_to_number(&machine.button_schematics);
 
-                println!("{:?}", lights);
-                println!("{:?}", buttons);
+                self.xor_combination(&buttons, lights, 0, &mut vec![]) as i64
 
-                0
+                // println!("lights: {:?}", lights);
+                // println!("buttons: {:?}", buttons);
+
+                // let mut combination = vec![];
+
+                // let res = self.xor_combination(&buttons, lights, 0, &mut combination) as i64;
+                // println!("res: {}", res);
+
+                // res
             })
             .sum()
     }
 
     fn part2(&self, input: &str) -> Self::Output {
-        0
+        let (_, input) = parser::parse(input).unwrap();
+
+        input
+            .iter()
+            .map(|machine| {
+                let joltages = &machine.joltages;
+                let buttons = self
+                    .convert_button_to_joltages_counter(&machine.button_schematics, joltages.len());
+
+                println!("joltages: {:?}", joltages);
+                println!("button_schematics: {:?}", &machine.button_schematics);
+                println!("buttons: {:?}", buttons);
+
+                11
+            })
+            .sum()
     }
 
     fn solve(&self, input: &str) {
@@ -165,13 +233,13 @@ mod tests {
     fn test_puzzle_day10_part1() {
         let puzzle = Day10;
 
-        assert_eq!(puzzle.part1(TESTCASE), 0);
+        assert_eq!(puzzle.part1(TESTCASE), 7);
     }
 
     #[test]
     fn test_puzzle_day10_part2() {
         let puzzle = Day10;
 
-        assert_eq!(puzzle.part2(TESTCASE), 0);
+        assert_eq!(puzzle.part2(TESTCASE), 33);
     }
 }
