@@ -1,4 +1,5 @@
 use super::Puzzle;
+use std::io::Write;
 
 pub struct Day9;
 
@@ -130,6 +131,9 @@ impl Day9 {
     }
 
     fn visualize_floor(&self, floor: &Vec<Vec<bool>>) {
+        let outputs_path = std::path::Path::new("./puzzle_inputs").join("day9_output.txt");
+        let mut output_file = std::fs::File::create(outputs_path).unwrap();
+
         for row in floor {
             let mut row_str = String::new();
             for tile in row {
@@ -139,7 +143,9 @@ impl Day9 {
                     row_str += ".";
                 }
             }
-            println!("{}", row_str);
+            // println!("{}", row_str);
+
+            writeln!(output_file, "{:}", row_str).unwrap();
         }
     }
 }
@@ -165,7 +171,7 @@ impl Puzzle for Day9 {
         let mut floor = self.generate_floor(&tiles);
         self.add_border(&mut floor, &tiles);
         self.fill_tiles(&mut floor, &tiles);
-        // self.visualize_floor(&floor);
+        self.visualize_floor(&floor);
 
         let mut max_area = 0;
         for i in 0..tiles.len() {
